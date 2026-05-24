@@ -37,6 +37,19 @@ class _DashboardContent extends ConsumerWidget {
   const _DashboardContent({required this.uid});
   final String uid;
 
+  void _showRecycleBin(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: MeekzColors.background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(MeekzRadius.xl)),
+      ),
+      builder: (context) {
+        return _RecycleBinSheet(uid: uid);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(userProfileProvider(uid));
@@ -91,6 +104,11 @@ class _DashboardContent extends ConsumerWidget {
             SectionHeader(
               title: 'Children',
               subtitle: 'Tap "Start Screening" to begin a session',
+              trailing: IconButton(
+                icon: const Icon(Icons.delete_sweep_rounded, color: MeekzColors.muted, size: 24),
+                tooltip: 'Recycle Bin',
+                onPressed: () => _showRecycleBin(context, ref),
+              ),
             ),
             const SizedBox(height: 16),
             childrenAsync.when(
@@ -394,6 +412,198 @@ class _GreetingShimmer extends StatelessWidget {
         decoration: BoxDecoration(
           color: MeekzColors.border.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(MeekzRadius.xl),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Recycle Bin Bottom Sheet ────────────────────────────────────────────────
+class _RecycleBinSheet extends ConsumerWidget {
+  const _RecycleBinSheet({required this.uid});
+  final String uid;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final deletedAsync = ref.watch(deletedChildrenProvider(uid));
+
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recycle Bin ♻️',
+                  style: GoogleFonts.quicksand(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: MeekzColors.ink,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Select a deleted profile to restore it back to your active list.',
+              style: GoogleFonts.quicksand(
+                fontSize: 13,
+                color: MeekzColors.muted,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Flexible(
+              child: deletedAsync.when(
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+                error: (err, _) => Center(
+                  child: Text(
+                    err.toString(),
+                    style: GoogleFonts.quicksand(color: MeekzColors.danger),
+                  ),
+                ),
+                data: (deletedList) {
+                  if (deletedList.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 36),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('♻️', style: TextStyle(fontSize: 40)),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Recycle Bin is empty',
+                              style: GoogleFonts.quicksand(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: MeekzColors.ink,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: deletedList.length,
+                    itemBuilder: (context, idx) {
+                      final child = deletedList[idx];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: MeekzColors.surface,
+                          borderRadius: BorderRadius.circular(MeekzRadius.md),
+                          border: Border.all(color: MeekzColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: MeekzColors.muted.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(MeekzRadius.sm),
+                              ),
+                              child: const Center(
+                                child: Text('👶', style: TextStyle(fontSize: 18)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    child.nameOrNickname,
+                                    style: GoogleFonts.quicksand(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 15,
+                                      color: MeekzColors.ink,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Age ${child.age}',
+                                    style: GoogleFonts.quicksand(
+                                      fontSize: 12,
+                                      color: MeekzColors.muted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () async {
+                                try {
+                                  await ref
+                                      .read(childProfileServiceProvider)
+                                      .restoreChildProfile(
+                                        userId: uid,
+                                        childId: child.childId,
+                                      );
+                                  ref.invalidate(childrenProvider(uid));
+                                  ref.invalidate(deletedChildrenProvider(uid));
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Restored ${child.nameOrNickname} successfully!',
+                                          style: GoogleFonts.quicksand(),
+                                        ),
+                                        backgroundColor: MeekzColors.primary,
+                                      ),
+                                    );
+                                    Navigator.pop(context);
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          e.toString(),
+                                          style: GoogleFonts.quicksand(),
+                                        ),
+                                        backgroundColor: MeekzColors.danger,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.restore_from_trash_rounded, size: 16),
+                              label: Text(
+                                'Restore',
+                                style: GoogleFonts.quicksand(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                foregroundColor: MeekzColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

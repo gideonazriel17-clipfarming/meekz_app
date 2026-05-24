@@ -31,6 +31,12 @@ final childrenProvider =
   return ref.watch(childProfileServiceProvider).getActiveChildProfiles(uid);
 });
 
+// ─── Deleted Children (Recycle Bin) for current user ──────────────────────────
+final deletedChildrenProvider =
+    FutureProvider.family<List<ChildProfile>, String>((ref, uid) {
+  return ref.watch(childProfileServiceProvider).getDeletedChildProfiles(uid);
+});
+
 // ─── Selected language (cached in session) ──────────────────────────────────
 final selectedLanguageProvider =
     StateProvider<LanguageCode>((ref) => LanguageCode.en);

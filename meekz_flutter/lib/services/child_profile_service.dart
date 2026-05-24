@@ -127,6 +127,33 @@ class ChildProfileService {
     });
   }
 
+  Future<List<ChildProfile>> getDeletedChildProfiles(String userId) async {
+    final snapshot = await _children
+        .where('userId', isEqualTo: userId)
+        .where('isDeleted', isEqualTo: true)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => ChildProfile.fromFirestore(doc.data()))
+        .toList();
+  }
+
+  Future<void> restoreChildProfile({
+    required String userId,
+    required String childId,
+  }) async {
+    final child = await getChildProfile(userId: userId, childId: childId);
+    if (!child.isDeleted) {
+      throw const MeekzException('Child profile is not deleted.');
+    }
+
+    await _children.doc(childId).update({
+      'isDeleted': false,
+      'deletedAt': null,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   void _validateAge(int age) {
     if (age < 6 || age > 8) {
       throw const MeekzException(

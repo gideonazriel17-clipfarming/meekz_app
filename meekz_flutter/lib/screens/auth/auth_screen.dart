@@ -49,7 +49,25 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 36),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded, color: MeekzColors.muted),
+                    onPressed: () => context.go(MeekzRoutes.onboarding),
+                    tooltip: 'Back to Welcome',
+                  ),
+                  Text(
+                    'Back',
+                    style: GoogleFonts.quicksand(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: MeekzColors.muted,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
 
               // ── Logo block ────────────────────────────────────────────
               Row(
