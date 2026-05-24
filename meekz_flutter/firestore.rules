@@ -1,0 +1,209 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function hasOnlyFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function validRole(role) {
+      return role in [
+        'parent',
+        'teacher',
+        'school_counselor',
+        'support_personnel',
+        'admin'
+      ];
+    }
+
+    function validLanguage(language) {
+      return language in ['ms', 'en', 'zh'];
+    }
+
+    function validDomain(domain) {
+      return domain in ['literacy', 'numeracy', 'attention'];
+    }
+
+    function validStatus(status) {
+      return status in [
+        'not_started',
+        'in_progress',
+        'completed',
+        'invalid',
+        'repeat_recommended'
+      ];
+    }
+
+    function validIndicator(indicator) {
+      return indicator in ['low', 'moderate', 'high', 'inconclusive'];
+    }
+
+    function validReliability(flag) {
+      return flag in ['valid', 'caution', 'invalid'];
+    }
+
+    function validGeneratedBy(value) {
+      return value in ['rule_based', 'template'];
+    }
+
+    function validChildAge(age) {
+      return age is int && age >= 6 && age <= 8;
+    }
+
+    function validNumber(value) {
+      return value is int || value is float;
+    }
+
+    function validAccuracy(value) {
+      return validNumber(value) && value >= 0 && value <= 1;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+        && request.resource.data.userId == userId
+        && request.resource.data.email is string
+        && request.resource.data.name is string
+        && validRole(request.resource.data.role)
+        && request.resource.data.consentAccepted is bool;
+
+      allow update: if isOwner(userId)
+        && request.resource.data.userId == userId
+        && request.resource.data.email is string
+        && request.resource.data.name is string
+        && validRole(request.resource.data.role)
+        && request.resource.data.consentAccepted is bool;
+
+      allow delete: if false;
+    }
+
+    match /children/{childId} {
+      allow read: if isOwner(resource.data.userId);
+
+      allow create: if isOwner(request.resource.data.userId)
+        && request.resource.data.childId == childId
+        && request.resource.data.nameOrNickname is string
+        && validChildAge(request.resource.data.age)
+        && validLanguage(request.resource.data.preferredLanguage)
+        && request.resource.data.isDeleted is bool;
+
+      allow update: if isOwner(resource.data.userId)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.childId == childId
+        && request.resource.data.nameOrNickname is string
+        && validChildAge(request.resource.data.age)
+        && validLanguage(request.resource.data.preferredLanguage)
+        && request.resource.data.isDeleted is bool;
+
+      allow delete: if false;
+    }
+
+    match /screeningSessions/{sessionId} {
+      allow read: if isOwner(resource.data.userId);
+
+      allow create: if isOwner(request.resource.data.userId)
+        && request.resource.data.sessionId == sessionId
+        && request.resource.data.childId is string
+        && validLanguage(request.resource.data.language)
+        && validStatus(request.resource.data.status)
+        && request.resource.data.consentConfirmed == true
+        && request.resource.data.domainsCompleted is list;
+
+      allow update: if isOwner(resource.data.userId)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.sessionId == sessionId
+        && validLanguage(request.resource.data.language)
+        && validStatus(request.resource.data.status)
+        && request.resource.data.consentConfirmed is bool
+        && request.resource.data.domainsCompleted is list;
+
+      allow delete: if false;
+    }
+
+    match /gameResults/{resultId} {
+      allow read: if isOwner(resource.data.userId);
+
+      allow create: if isOwner(request.resource.data.userId)
+        && request.resource.data.resultId == resultId
+        && request.resource.data.sessionId is string
+        && request.resource.data.childId is string
+        && validDomain(request.resource.data.domain)
+        && request.resource.data.gameType is string
+        && request.resource.data.totalQuestions is int
+        && request.resource.data.totalQuestions > 0
+        && request.resource.data.correctAnswers is int
+        && request.resource.data.incorrectAnswers is int
+        && validAccuracy(request.resource.data.accuracy)
+        && request.resource.data.averageResponseTimeMs is int
+        && request.resource.data.missedPrompts is int
+        && request.resource.data.inactivityCount is int
+        && request.resource.data.repeatedErrors is int
+        && request.resource.data.randomResponseFlag is bool
+        && request.resource.data.completed is bool;
+
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /riskClassifications/{classificationId} {
+      allow read: if isOwner(resource.data.userId);
+
+      allow create: if isOwner(request.resource.data.userId)
+        && request.resource.data.classificationId == classificationId
+        && request.resource.data.sessionId is string
+        && request.resource.data.childId is string
+        && validIndicator(request.resource.data.literacyIndicator)
+        && validIndicator(request.resource.data.numeracyIndicator)
+        && validIndicator(request.resource.data.attentionIndicator)
+        && validIndicator(request.resource.data.overallIndicator)
+        && validReliability(request.resource.data.reliabilityFlag)
+        && request.resource.data.reasonCodes is list
+        && request.resource.data.disclaimer is string;
+
+      allow update: if isOwner(resource.data.userId)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.classificationId == classificationId
+        && validIndicator(request.resource.data.literacyIndicator)
+        && validIndicator(request.resource.data.numeracyIndicator)
+        && validIndicator(request.resource.data.attentionIndicator)
+        && validIndicator(request.resource.data.overallIndicator)
+        && validReliability(request.resource.data.reliabilityFlag)
+        && request.resource.data.reasonCodes is list
+        && request.resource.data.disclaimer is string;
+
+      allow delete: if false;
+    }
+
+    match /resultSummaries/{summaryId} {
+      allow read: if isOwner(resource.data.userId);
+
+      allow create: if isOwner(request.resource.data.userId)
+        && request.resource.data.summaryId == summaryId
+        && request.resource.data.sessionId is string
+        && request.resource.data.childId is string
+        && request.resource.data.explanationText is string
+        && request.resource.data.recommendationText is string
+        && validGeneratedBy(request.resource.data.generatedBy)
+        && request.resource.data.disclaimer is string;
+
+      allow update: if isOwner(resource.data.userId)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.summaryId == summaryId
+        && request.resource.data.explanationText is string
+        && request.resource.data.recommendationText is string
+        && validGeneratedBy(request.resource.data.generatedBy)
+        && request.resource.data.disclaimer is string;
+
+      allow delete: if false;
+    }
+  }
+}

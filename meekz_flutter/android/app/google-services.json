@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "560438072586",
+    "project_id": "fyp1-80266",
+    "storage_bucket": "fyp1-80266.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:560438072586:android:0f0b501e3851518f6fd6f3",
+        "android_client_info": {
+          "package_name": "com.example.meekz_flutter_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaMFdbwMBQVIszCPCgZwrOJNE9D151taU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:560438072586:android:e21f5d0faa7d25316fd6f3",
+        "android_client_info": {
+          "package_name": "com.meekz.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaMFdbwMBQVIszCPCgZwrOJNE9D151taU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
