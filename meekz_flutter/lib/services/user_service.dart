@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/adult_user_profile.dart';
 import '../models/app_enums.dart';
@@ -37,6 +38,23 @@ class UserService {
     final data = snapshot.data();
 
     if (data == null) {
+      try {
+        final authUser = FirebaseAuth.instance.currentUser;
+        if (authUser != null && authUser.uid == userId) {
+          await createUserProfile(
+            userId: userId,
+            name: authUser.displayName?.isNotEmpty == true
+                ? authUser.displayName!
+                : 'User',
+            email: authUser.email ?? '',
+            role: AdultRole.parent,
+            consentAccepted: true,
+          );
+          final newSnapshot = await _users.doc(userId).get();
+          return AdultUserProfile.fromFirestore(newSnapshot.data()!);
+        }
+      } catch (_) {}
+
       throw const MeekzException('Adult user profile was not found.');
     }
 
